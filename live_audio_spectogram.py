@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 import pyaudio
-from tkinter import Tk, filedialog, Button, Label, Canvas, Frame
+from tkinter import Tk, filedialog, Canvas, Frame
 from tkinter import ttk
 from scipy.io import wavfile
 
@@ -17,19 +17,6 @@ def normalize(data, min_val=0, max_val=255):
 
 def live_mic_visualization():
     """Visualize audio from a USB microphone in real-time."""
-    root = Tk()
-    root.title("Live Mic Visualization")
-    root.geometry("500x500")
-    root.configure(bg="#1e1e2f")
-
-    back_button = ttk.Button(root, text="Back", command=lambda: [root.destroy(), main_menu()])
-    back_button.pack(pady=20)
-
-    label = ttk.Label(root, text="Live visualization in progress... Close this window to return.", font=("Arial", 12), background="#1e1e2f", foreground="#ffffff")
-    label.pack(pady=20)
-
-    root.mainloop()
-
     p = pyaudio.PyAudio()
     stream = p.open(format=pyaudio.paInt16,
                     channels=1,
@@ -47,7 +34,8 @@ def live_mic_visualization():
             spectrogram[:, -1] = np.clip(fft_data[:WINDOW_HEIGHT], 0, WINDOW_HEIGHT - 1)
 
             spectrogram_flipped = np.flipud(spectrogram)
-            cv2.imshow("Live Audio Spectrogram (Mic)", spectrogram_flipped)
+            spectrogram_colored = cv2.applyColorMap(spectrogram_flipped, cv2.COLORMAP_JET)
+            cv2.imshow("Live Audio Spectrogram (Mic)", spectrogram_colored)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
@@ -61,19 +49,6 @@ def live_mic_visualization():
 
 def wav_file_visualization(file_path):
     """Visualize audio from a WAV file."""
-    root = Tk()
-    root.title("WAV File Visualization")
-    root.geometry("500x500")
-    root.configure(bg="#1e1e2f")
-
-    back_button = ttk.Button(root, text="Back", command=lambda: [root.destroy(), main_menu()])
-    back_button.pack(pady=20)
-
-    label = ttk.Label(root, text="Visualization in progress... Close this window to return.", font=("Arial", 12), background="#1e1e2f", foreground="#ffffff")
-    label.pack(pady=20)
-
-    root.mainloop()
-
     rate, data = wavfile.read(file_path)
     spectrogram = np.zeros((WINDOW_HEIGHT, WINDOW_WIDTH), dtype=np.uint8)
     start = 0
@@ -95,7 +70,8 @@ def wav_file_visualization(file_path):
             spectrogram[:, -1] = np.clip(fft_data[:WINDOW_HEIGHT], 0, WINDOW_HEIGHT - 1)
 
             spectrogram_flipped = np.flipud(spectrogram)
-            cv2.imshow("Live Audio Spectrogram (WAV)", spectrogram_flipped)
+            spectrogram_colored = cv2.applyColorMap(spectrogram_flipped, cv2.COLORMAP_JET)
+            cv2.imshow("Live Audio Spectrogram (WAV)", spectrogram_colored)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
@@ -165,24 +141,22 @@ def main_menu():
     root.configure(bg="#1e1e2f")
 
     # Create a rounded canvas for modern look
-    canvas = Canvas(root, bg="#1e1e2f", bd=0, highlightthickness=0)
-    canvas.pack(fill="both", expand=True)
-
-    frame = Frame(canvas, bg="#2c2c3e", highlightbackground="#ffffff", highlightthickness=2, relief="groove")
+    frame = Frame(root, bg="#2c2c3e", highlightbackground="#ffffff", highlightthickness=2, relief="groove")
     frame.place(relx=0.5, rely=0.5, anchor="center", width=400, height=500)
 
     style = ttk.Style()
     style.theme_use("clam")
-    style.configure("TButton", font=("Arial", 12), padding=10, background="#4caf50", foreground="white")
+    style.configure("TButton", font=("Arial", 12), padding=10)
     style.configure("TLabel", background="#2c2c3e", foreground="#ffffff", font=("Arial", 14))
 
-    label = ttk.Label(frame, text="Select an Option")
-    label.pack(pady=20)
+    ttk.Label(frame, text="Select an Option", background="#2c2c3e", font=("Arial", 14)).pack(pady=20)
 
-    mic_button = ttk.Button(frame, text="Use USB Microphone", command=lambda: [root.destroy(), live_mic_visualization()])
-    mic_button.pack(pady=10)
+    ttk.Button(frame, text="Use USB Microphone", command=lambda: [root.destroy(), live_mic_visualization()]).pack(pady=10)
+    ttk.Button(frame, text="Upload WAV File", command=lambda: [root.destroy(), convert_wav_to_image()]).pack(pady=10)
+    ttk.Button(frame, text="Convert Image to WAV", command=lambda: [root.destroy(), convert_image_to_wav()]).pack(pady=10)
+    ttk.Button(frame, text="Exit", command=root.quit).pack(pady=10)
 
-    wav_button = ttk.Button(frame, text="Upload WAV File", command=lambda: [root.destroy(), convert_wav_to_image()])
-    wav_button.pack(pady=10)
+    root.mainloop()
 
-    image_to_wav_button
+if __name__ == "__main__":
+    main_menu()
