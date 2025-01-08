@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import pyaudio
 from tkinter import Tk, filedialog, Button, Label
+from tkinter import ttk
 from scipy.io import wavfile
 
 # Audio configuration
@@ -30,7 +31,7 @@ def live_mic_visualization():
             fft_data = normalize(fft_data, 0, WINDOW_HEIGHT)
 
             spectrogram[:, :-1] = spectrogram[:, 1:]
-            spectrogram[:, -1] = np.clip(fft_data, 0, WINDOW_HEIGHT - 1)
+            spectrogram[:, -1] = np.clip(fft_data[:WINDOW_HEIGHT], 0, WINDOW_HEIGHT - 1)
 
             spectrogram_flipped = np.flipud(spectrogram)
             cv2.imshow("Live Audio Spectrogram (Mic)", spectrogram_flipped)
@@ -65,7 +66,7 @@ def wav_file_visualization(file_path):
             fft_data = normalize(fft_data, 0, WINDOW_HEIGHT)
 
             spectrogram[:, :-1] = spectrogram[:, 1:]
-            spectrogram[:, -1] = np.clip(fft_data, 0, WINDOW_HEIGHT - 1)
+            spectrogram[:, -1] = np.clip(fft_data[:WINDOW_HEIGHT], 0, WINDOW_HEIGHT - 1)
 
             spectrogram_flipped = np.flipud(spectrogram)
             cv2.imshow("Live Audio Spectrogram (WAV)", spectrogram_flipped)
@@ -84,20 +85,27 @@ def select_wav_file():
         wav_file_visualization(file_path)
 
 def main_menu():
-    """Create a simple GUI for user selection."""
+    """Create a modern GUI for user selection."""
     root = Tk()
     root.title("Audio Spectrogram Viewer")
+    root.geometry("400x300")
+    root.configure(bg="#282c34")
 
-    label = Label(root, text="Select Input Source", font=("Arial", 14))
+    style = ttk.Style()
+    style.theme_use("clam")
+    style.configure("TButton", font=("Arial", 12), padding=10)
+    style.configure("TLabel", background="#282c34", foreground="#ffffff", font=("Arial", 14))
+
+    label = ttk.Label(root, text="Select Input Source")
     label.pack(pady=20)
 
-    mic_button = Button(root, text="Use USB Microphone", command=lambda: [root.destroy(), live_mic_visualization()])
+    mic_button = ttk.Button(root, text="Use USB Microphone", command=lambda: [root.destroy(), live_mic_visualization()])
     mic_button.pack(pady=10)
 
-    wav_button = Button(root, text="Upload WAV File", command=lambda: [root.destroy(), select_wav_file()])
+    wav_button = ttk.Button(root, text="Upload WAV File", command=lambda: [root.destroy(), select_wav_file()])
     wav_button.pack(pady=10)
 
-    exit_button = Button(root, text="Exit", command=root.quit)
+    exit_button = ttk.Button(root, text="Exit", command=root.quit)
     exit_button.pack(pady=10)
 
     root.mainloop()
