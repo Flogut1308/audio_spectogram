@@ -85,7 +85,10 @@ def wav_file_visualization(root):
 
 def convert_image_to_wav(root):
     root.destroy()
-    file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png;*.jpg;*.jpeg;*.bmp;*.tiff")])
+    file_path = filedialog.askopenfilename(filetypes=[
+    ("Image files", "*.png *.jpg *.jpeg *.bmp *.tiff"),
+    ("All files", "*.*")
+])
     if not file_path:
         main_menu()
         return
