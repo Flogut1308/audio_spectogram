@@ -11,18 +11,14 @@ RATE = 44100  # Sampling rate in Hz
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 400
 
+# Helper function to normalize data
 def normalize(data, min_val=0, max_val=255):
-    """Normalize data to a given range."""
     return np.interp(data, (data.min(), data.max()), (min_val, max_val))
 
-def live_mic_visualization():
-    """Visualize audio from a USB microphone in real-time."""
+def live_mic_visualization(root):
+    root.destroy()
     p = pyaudio.PyAudio()
-    stream = p.open(format=pyaudio.paInt16,
-                    channels=1,
-                    rate=RATE,
-                    input=True,
-                    frames_per_buffer=CHUNK)
+    stream = p.open(format=pyaudio.paInt16, channels=1, rate=RATE, input=True, frames_per_buffer=CHUNK)
     try:
         spectrogram = np.zeros((WINDOW_HEIGHT, WINDOW_WIDTH), dtype=np.uint8)
         while True:
@@ -39,16 +35,22 @@ def live_mic_visualization():
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-    except KeyboardInterrupt:
-        print("Mic visualization stopped.")
+    except Exception as e:
+        print(f"Error in mic visualization: {e}")
     finally:
         stream.stop_stream()
         stream.close()
         p.terminate()
         cv2.destroyAllWindows()
+        main_menu()
 
-def wav_file_visualization(file_path):
-    """Visualize audio from a WAV file."""
+def wav_file_visualization(root):
+    root.destroy()
+    file_path = filedialog.askopenfilename(filetypes=[("WAV files", "*.wav")])
+    if not file_path:
+        main_menu()
+        return
+
     rate, data = wavfile.read(file_path)
     spectrogram = np.zeros((WINDOW_HEIGHT, WINDOW_WIDTH), dtype=np.uint8)
     start = 0
@@ -75,72 +77,85 @@ def wav_file_visualization(file_path):
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-    except KeyboardInterrupt:
-        print("WAV visualization stopped.")
+    except Exception as e:
+        print(f"Error in WAV visualization: {e}")
     finally:
         cv2.destroyAllWindows()
+        main_menu()
 
-def image_to_wav(image_path, output_wav, sample_rate=44100):
-    """Convert an image to a WAV file."""
-    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-    height, width = image.shape
-
-    # Normalize image to [-1, 1] range
-    image_normalized = (image / 255.0) * 2 - 1
-
-    # Generate audio data using IFFT
-    audio = np.fft.irfft(image_normalized, axis=0).flatten()
-
-    # Normalize audio to int16 range
-    audio = (audio / np.max(np.abs(audio)) * 32767).astype(np.int16)
-
-    # Save as WAV
-    wavfile.write(output_wav, sample_rate, audio)
-    print(f"WAV saved: {output_wav}")
-
-def wav_to_image(wav_path, output_image, image_height, image_width):
-    """Convert a WAV file to an image."""
-    rate, audio = wavfile.read(wav_path)
-    audio = audio.astype(np.float32) / 32768  # Normalize to [-1, 1]
-
-    # Reshape to match image dimensions
-    audio = audio[:image_width * image_height]  # Trim to fit dimensions
-    audio_matrix = audio.reshape(image_width, image_height).T
-
-    # Apply FFT to get frequency spectrum
-    spectrum = np.abs(np.fft.rfft(audio_matrix, axis=0))
-
-    # Normalize spectrum to [0, 255]
-    spectrum_normalized = (spectrum / np.max(spectrum) * 255).astype(np.uint8)
-
-    # Save as image
-    cv2.imwrite(output_image, spectrum_normalized)
-    print(f"Image saved: {output_image}")
-
-def convert_image_to_wav():
-    """Select an image and convert it to a WAV file."""
+def convert_image_to_wav(root):
+    root.destroy()
     file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png;*.jpg;*.jpeg;*.bmp;*.tiff")])
-    if file_path:
-        output_wav = filedialog.asksaveasfilename(defaultextension=".wav", filetypes=[("WAV files", "*.wav")])
-        if output_wav:
-            image_to_wav(file_path, output_wav)
+    if not file_path:
+        main_menu()
+        return
 
-def convert_wav_to_image():
-    """Select a WAV file and convert it to an image."""
+    output_wav = filedialog.asksaveasfilename(defaultextension=".wav", filetypes=[("WAV files", "*.wav")])
+    if not output_wav:
+        main_menu()
+        return
+
+    try:
+        image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+        height, width = image.shape
+
+        # Normalize image to [-1, 1] range
+        image_normalized = (image / 255.0) * 2 - 1
+
+        # Generate audio data using IFFT
+        audio = np.fft.irfft(image_normalized, axis=0).flatten()
+
+        # Normalize audio to int16 range
+        audio = (audio / np.max(np.abs(audio)) * 32767).astype(np.int16)
+
+        # Save as WAV
+        wavfile.write(output_wav, RATE, audio)
+        print(f"WAV saved: {output_wav}")
+    except Exception as e:
+        print(f"Error converting image to WAV: {e}")
+    finally:
+        main_menu()
+
+def convert_wav_to_image(root):
+    root.destroy()
     file_path = filedialog.askopenfilename(filetypes=[("WAV files", "*.wav")])
-    if file_path:
-        output_image = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("Image files", "*.png")])
-        if output_image:
-            wav_to_image(file_path, output_image, image_height=WINDOW_HEIGHT, image_width=WINDOW_WIDTH)
+    if not file_path:
+        main_menu()
+        return
+
+    output_image = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("Image files", "*.png")])
+    if not output_image:
+        main_menu()
+        return
+
+    try:
+        rate, audio = wavfile.read(file_path)
+        audio = audio.astype(np.float32) / 32768  # Normalize to [-1, 1]
+
+        # Reshape to match image dimensions
+        audio = audio[:WINDOW_WIDTH * WINDOW_HEIGHT]  # Trim to fit dimensions
+        audio_matrix = audio.reshape(WINDOW_WIDTH, WINDOW_HEIGHT).T
+
+        # Apply FFT to get frequency spectrum
+        spectrum = np.abs(np.fft.rfft(audio_matrix, axis=0))
+
+        # Normalize spectrum to [0, 255]
+        spectrum_normalized = (spectrum / np.max(spectrum) * 255).astype(np.uint8)
+
+        # Save as image
+        cv2.imwrite(output_image, spectrum_normalized)
+        print(f"Image saved: {output_image}")
+    except Exception as e:
+        print(f"Error converting WAV to image: {e}")
+    finally:
+        main_menu()
 
 def main_menu():
-    """Create a modern GUI for user selection."""
     root = Tk()
     root.title("Audio Spectrogram Viewer")
     root.geometry("500x600")
     root.configure(bg="#1e1e2f")
 
-    # Create a rounded canvas for modern look
     frame = Frame(root, bg="#2c2c3e", highlightbackground="#ffffff", highlightthickness=2, relief="groove")
     frame.place(relx=0.5, rely=0.5, anchor="center", width=400, height=500)
 
@@ -151,9 +166,10 @@ def main_menu():
 
     ttk.Label(frame, text="Select an Option", background="#2c2c3e", font=("Arial", 14)).pack(pady=20)
 
-    ttk.Button(frame, text="Use USB Microphone", command=lambda: [root.destroy(), live_mic_visualization()]).pack(pady=10)
-    ttk.Button(frame, text="Upload WAV File", command=lambda: [root.destroy(), convert_wav_to_image()]).pack(pady=10)
-    ttk.Button(frame, text="Convert Image to WAV", command=lambda: [root.destroy(), convert_image_to_wav()]).pack(pady=10)
+    ttk.Button(frame, text="Use USB Microphone", command=lambda: live_mic_visualization(root)).pack(pady=10)
+    ttk.Button(frame, text="Upload WAV File", command=lambda: wav_file_visualization(root)).pack(pady=10)
+    ttk.Button(frame, text="Convert Image to WAV", command=lambda: convert_image_to_wav(root)).pack(pady=10)
+    ttk.Button(frame, text="Convert WAV to Image", command=lambda: convert_wav_to_image(root)).pack(pady=10)
     ttk.Button(frame, text="Exit", command=root.quit).pack(pady=10)
 
     root.mainloop()
