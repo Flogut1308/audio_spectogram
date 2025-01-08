@@ -17,6 +17,19 @@ def normalize(data, min_val=0, max_val=255):
 
 def live_mic_visualization():
     """Visualize audio from a USB microphone in real-time."""
+    root = Tk()
+    root.title("Live Mic Visualization")
+    root.geometry("500x500")
+    root.configure(bg="#1e1e2f")
+
+    back_button = ttk.Button(root, text="Back", command=lambda: [root.destroy(), main_menu()])
+    back_button.pack(pady=20)
+
+    label = ttk.Label(root, text="Live visualization in progress... Close this window to return.", font=("Arial", 12), background="#1e1e2f", foreground="#ffffff")
+    label.pack(pady=20)
+
+    root.mainloop()
+
     p = pyaudio.PyAudio()
     stream = p.open(format=pyaudio.paInt16,
                     channels=1,
@@ -48,6 +61,19 @@ def live_mic_visualization():
 
 def wav_file_visualization(file_path):
     """Visualize audio from a WAV file."""
+    root = Tk()
+    root.title("WAV File Visualization")
+    root.geometry("500x500")
+    root.configure(bg="#1e1e2f")
+
+    back_button = ttk.Button(root, text="Back", command=lambda: [root.destroy(), main_menu()])
+    back_button.pack(pady=20)
+
+    label = ttk.Label(root, text="Visualization in progress... Close this window to return.", font=("Arial", 12), background="#1e1e2f", foreground="#ffffff")
+    label.pack(pady=20)
+
+    root.mainloop()
+
     rate, data = wavfile.read(file_path)
     spectrogram = np.zeros((WINDOW_HEIGHT, WINDOW_WIDTH), dtype=np.uint8)
     start = 0
@@ -117,7 +143,7 @@ def wav_to_image(wav_path, output_image, image_height, image_width):
 
 def convert_image_to_wav():
     """Select an image and convert it to a WAV file."""
-    file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png;*.jpg;*.jpeg")])
+    file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png;*.jpg;*.jpeg;*.bmp;*.tiff")])
     if file_path:
         output_wav = filedialog.asksaveasfilename(defaultextension=".wav", filetypes=[("WAV files", "*.wav")])
         if output_wav:
@@ -135,15 +161,15 @@ def main_menu():
     """Create a modern GUI for user selection."""
     root = Tk()
     root.title("Audio Spectrogram Viewer")
-    root.geometry("500x500")
+    root.geometry("500x600")
     root.configure(bg="#1e1e2f")
 
     # Create a rounded canvas for modern look
     canvas = Canvas(root, bg="#1e1e2f", bd=0, highlightthickness=0)
     canvas.pack(fill="both", expand=True)
 
-    frame = Frame(canvas, bg="#2c2c3e", highlightbackground="#ffffff", highlightthickness=2)
-    frame.place(relx=0.5, rely=0.5, anchor="center", width=400, height=400)
+    frame = Frame(canvas, bg="#2c2c3e", highlightbackground="#ffffff", highlightthickness=2, relief="groove")
+    frame.place(relx=0.5, rely=0.5, anchor="center", width=400, height=500)
 
     style = ttk.Style()
     style.theme_use("clam")
@@ -156,19 +182,7 @@ def main_menu():
     mic_button = ttk.Button(frame, text="Use USB Microphone", command=lambda: [root.destroy(), live_mic_visualization()])
     mic_button.pack(pady=10)
 
-    wav_button = ttk.Button(frame, text="Upload WAV File", command=lambda: [root.destroy(), select_wav_file()])
+    wav_button = ttk.Button(frame, text="Upload WAV File", command=lambda: [root.destroy(), convert_wav_to_image()])
     wav_button.pack(pady=10)
 
-    image_to_wav_button = ttk.Button(frame, text="Convert Image to WAV", command=lambda: [root.destroy(), convert_image_to_wav()])
-    image_to_wav_button.pack(pady=10)
-
-    wav_to_image_button = ttk.Button(frame, text="Convert WAV to Image", command=lambda: [root.destroy(), convert_wav_to_image()])
-    wav_to_image_button.pack(pady=10)
-
-    exit_button = ttk.Button(frame, text="Exit", command=root.quit)
-    exit_button.pack(pady=10)
-
-    root.mainloop()
-
-if __name__ == "__main__":
-    main_menu()
+    image_to_wav_button
