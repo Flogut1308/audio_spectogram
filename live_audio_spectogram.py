@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 import pyaudio
-from tkinter import Tk, filedialog, Button, Label
+from tkinter import Tk, filedialog, Button, Label, Canvas, Frame
 from tkinter import ttk
 from scipy.io import wavfile
 
@@ -78,34 +78,94 @@ def wav_file_visualization(file_path):
     finally:
         cv2.destroyAllWindows()
 
-def select_wav_file():
-    """Open a file dialog to select a WAV file."""
+def image_to_wav(image_path, output_wav, sample_rate=44100):
+    """Convert an image to a WAV file."""
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    height, width = image.shape
+
+    # Normalize image to [-1, 1] range
+    image_normalized = (image / 255.0) * 2 - 1
+
+    # Generate audio data using IFFT
+    audio = np.fft.irfft(image_normalized, axis=0).flatten()
+
+    # Normalize audio to int16 range
+    audio = (audio / np.max(np.abs(audio)) * 32767).astype(np.int16)
+
+    # Save as WAV
+    wavfile.write(output_wav, sample_rate, audio)
+    print(f"WAV saved: {output_wav}")
+
+def wav_to_image(wav_path, output_image, image_height, image_width):
+    """Convert a WAV file to an image."""
+    rate, audio = wavfile.read(wav_path)
+    audio = audio.astype(np.float32) / 32768  # Normalize to [-1, 1]
+
+    # Reshape to match image dimensions
+    audio = audio[:image_width * image_height]  # Trim to fit dimensions
+    audio_matrix = audio.reshape(image_width, image_height).T
+
+    # Apply FFT to get frequency spectrum
+    spectrum = np.abs(np.fft.rfft(audio_matrix, axis=0))
+
+    # Normalize spectrum to [0, 255]
+    spectrum_normalized = (spectrum / np.max(spectrum) * 255).astype(np.uint8)
+
+    # Save as image
+    cv2.imwrite(output_image, spectrum_normalized)
+    print(f"Image saved: {output_image}")
+
+def convert_image_to_wav():
+    """Select an image and convert it to a WAV file."""
+    file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png;*.jpg;*.jpeg")])
+    if file_path:
+        output_wav = filedialog.asksaveasfilename(defaultextension=".wav", filetypes=[("WAV files", "*.wav")])
+        if output_wav:
+            image_to_wav(file_path, output_wav)
+
+def convert_wav_to_image():
+    """Select a WAV file and convert it to an image."""
     file_path = filedialog.askopenfilename(filetypes=[("WAV files", "*.wav")])
     if file_path:
-        wav_file_visualization(file_path)
+        output_image = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("Image files", "*.png")])
+        if output_image:
+            wav_to_image(file_path, output_image, image_height=WINDOW_HEIGHT, image_width=WINDOW_WIDTH)
 
 def main_menu():
     """Create a modern GUI for user selection."""
     root = Tk()
     root.title("Audio Spectrogram Viewer")
-    root.geometry("400x300")
-    root.configure(bg="#282c34")
+    root.geometry("500x500")
+    root.configure(bg="#1e1e2f")
+
+    # Create a rounded canvas for modern look
+    canvas = Canvas(root, bg="#1e1e2f", bd=0, highlightthickness=0)
+    canvas.pack(fill="both", expand=True)
+
+    frame = Frame(canvas, bg="#2c2c3e", highlightbackground="#ffffff", highlightthickness=2)
+    frame.place(relx=0.5, rely=0.5, anchor="center", width=400, height=400)
 
     style = ttk.Style()
     style.theme_use("clam")
-    style.configure("TButton", font=("Arial", 12), padding=10)
-    style.configure("TLabel", background="#282c34", foreground="#ffffff", font=("Arial", 14))
+    style.configure("TButton", font=("Arial", 12), padding=10, background="#4caf50", foreground="white")
+    style.configure("TLabel", background="#2c2c3e", foreground="#ffffff", font=("Arial", 14))
 
-    label = ttk.Label(root, text="Select Input Source")
+    label = ttk.Label(frame, text="Select an Option")
     label.pack(pady=20)
 
-    mic_button = ttk.Button(root, text="Use USB Microphone", command=lambda: [root.destroy(), live_mic_visualization()])
+    mic_button = ttk.Button(frame, text="Use USB Microphone", command=lambda: [root.destroy(), live_mic_visualization()])
     mic_button.pack(pady=10)
 
-    wav_button = ttk.Button(root, text="Upload WAV File", command=lambda: [root.destroy(), select_wav_file()])
+    wav_button = ttk.Button(frame, text="Upload WAV File", command=lambda: [root.destroy(), select_wav_file()])
     wav_button.pack(pady=10)
 
-    exit_button = ttk.Button(root, text="Exit", command=root.quit)
+    image_to_wav_button = ttk.Button(frame, text="Convert Image to WAV", command=lambda: [root.destroy(), convert_image_to_wav()])
+    image_to_wav_button.pack(pady=10)
+
+    wav_to_image_button = ttk.Button(frame, text="Convert WAV to Image", command=lambda: [root.destroy(), convert_wav_to_image()])
+    wav_to_image_button.pack(pady=10)
+
+    exit_button = ttk.Button(frame, text="Exit", command=root.quit)
     exit_button.pack(pady=10)
 
     root.mainloop()
